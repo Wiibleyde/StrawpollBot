@@ -7,6 +7,7 @@ import datetime
 import sqlite3
 import os
 import asyncio
+import random
 
 class Config:
     def __init__(self, fileName):
@@ -204,13 +205,13 @@ bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 @bot.event
 async def on_ready():
     print("Bot is ready")
+    CheckFcChange.start()
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} commands")
         print(f"Commands: {synced}")
     except Exception as e:
         print(f"Failed to sync commands: {e}")
-    CheckFcChange.start()
 
 @bot.tree.command(name="sondage", description="Affiche le sondage en cours")
 async def sondage(interaction: discord.Interaction):
@@ -279,6 +280,23 @@ async def utilisateur(interaction: discord.Interaction, user: discord.Member):
         except:
             await interaction.response.send_message("Cet utilisateur n'a pas voté")
 
+@bot.tree.command(name="best", description="Affiche le meilleur FC")
+# optionnal precise the user it can only a string 
+async def best(interaction: discord.Interaction, user: discord.Member = None):
+    logs.addLog(interaction.user.id, "best")
+    if user == None:
+        user=interaction.user
+    data=getPollResult(getIdRightPoll(False))
+    listPeople=getSortedLeaderBoard(data)[0]
+    listOfUserVotes=getUserVote(getPollResult(getIdRightPoll()),user.name)
+    if listOfUserVotes == None:
+        randomPerson=listPeople[random.randint(0,len(listPeople)-1)]
+    else:
+        randomPerson=listOfUserVotes[random.randint(0,len(listOfUserVotes)-1)]
+    embed = discord.Embed(title=f"Le best de {user.name}", description=f"{randomPerson} est le meilleur", color=0xeee657)
+    embed.add_field(name="Lien", value=buildPollUrl(getIdRightPoll()), inline=False)
+    await interaction.response.send_message(embed=embed)
+
 @bot.tree.command(name="help", description="Affiche l'aide")
 async def help(interaction: discord.Interaction):
     logs.addLog(interaction.user.id, "help")
@@ -288,6 +306,7 @@ async def help(interaction: discord.Interaction):
     embed.add_field(name="classement", value="Affiche le classement du sondage en cours", inline=False)
     embed.add_field(name="utilisateur", value="Affiche les votes d'un utilisateur", inline=False)
     embed.add_field(name="help", value="Affiche l'aide", inline=False)
+    embed.add_field(name="best", value="Affiche le meilleur FC de l'uilisateur", inline=False)
     await interaction.response.send_message(embed=embed)
 
 @tasks.loop(seconds=0.5)
