@@ -323,8 +323,8 @@ async def best(interaction: discord.Interaction, user: discord.Member = None):
     embed.add_field(name="Lien", value=buildPollUrl(getIdRightPoll()), inline=False)
     await interaction.response.send_message(embed=embed)
 
-@bot.tree.command(name="apropos", description="Affiche les informations du bot")
-async def apropos(interaction: discord.Interaction):
+@bot.tree.command(name="info", description="Affiche les informations du bot")
+async def info(interaction: discord.Interaction):
     logs.addLog(interaction.user.id, "a propos")
     embed = discord.Embed(title=bot.user.name, description="Bot créé par Wiibleyde#2834", color=0x00ff00)
     releaseInfo = getGithubLastRelease()
@@ -339,7 +339,7 @@ async def apropos(interaction: discord.Interaction):
 async def help(interaction: discord.Interaction):
     logs.addLog(interaction.user.id, "help")
     embed = discord.Embed(title="Les FC de Georgia", description="Pour utiliser les commandes, il faut taper / et discord va vous proposer les commandes disponibles", color=0x00ff00)
-    embed.add_field(name="Commandes", value="sondage : Renvoie le dernier sondage des FC valide\nclassement : Renvoie le classement du sondage en cours\nutilisateur : Renvoie les votes d'un utilisateur\nbest : Renvoie le meilleur FC\npremier : Renvoie le premier FC\na propos : Renvoie les informations du bot", inline=False)
+    embed.add_field(name="Commandes", value="sondage : Renvoie le dernier sondage des FC valide\nclassement : Renvoie le classement du sondage en cours\nutilisateur : Renvoie les votes d'un utilisateur\nbest : Renvoie le meilleur FC\npremier : Renvoie le premier FC\ninfo : Renvoie les informations du bot", inline=False)
     await interaction.response.send_message(embed=embed)
     
 @tasks.loop(seconds=0.5)
