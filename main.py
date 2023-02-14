@@ -112,7 +112,7 @@ def getIdRightPoll(default=False):
                 continue
             if data['data'][i]['poll_config']['deadline_at'] > datetime.datetime.now().timestamp():
                 return data['data'][i]['id']
-        return None
+        return data['data'][len(data['data'])-1]['id']
 
 def getPollResult(id):
     url = "https://api.strawpoll.com/v3/polls/"+str(id)+"/results"
@@ -200,6 +200,24 @@ def ListToString(s):
         str1 += ele + ", "  
     return str1[:-2]
 
+def getGithubInfo():
+    url = "https://api.github.com/repos/Wiibleyde/NewStrawpollBot"
+    response = requests.request("GET", url)
+    data=json.loads(response.text)
+    return data
+
+def getGithubLastRelease():
+    url = "https://api.github.com/repos/Wiibleyde/NewStrawpollBot/releases/latest"
+    response = requests.request("GET", url)
+    data=json.loads(response.text)
+    return data
+
+def getGithubLastCommit():
+    url = "https://api.github.com/repos/Wiibleyde/NewStrawpollBot/commits"
+    response = requests.request("GET", url)
+    data=json.loads(response.text)
+    return data[0]
+
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 @bot.event
@@ -266,11 +284,20 @@ async def classement(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="utilisateur", description="Affiche les votes d'un utilisateur")
-async def utilisateur(interaction: discord.Interaction, user: discord.Member):
+async def utilisateur(interaction: discord.Interaction, user: discord.Member = None):
     logs.addLog(interaction.user.id, "utilisateur")
     id = getIdRightPoll()
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
+    if user == None:
+        user = interaction.user.name
+        try:
+            valueToSend=ListToString(getUserVote(getPollResult(getIdRightPoll()),user))
+            embed = discord.Embed(title="Les FC de Georgia", description=f"Votes de {user}", color=0x00ff00)
+            embed.add_field(name="Votes", value=valueToSend, inline=False)
+            await interaction.response.send_message(embed=embed)
+        except:
+            await interaction.response.send_message("Cet utilisateur n'a pas voté")
     else:
         try:
             valueToSend=ListToString(getUserVote(getPollResult(getIdRightPoll()),user.name))
@@ -281,7 +308,6 @@ async def utilisateur(interaction: discord.Interaction, user: discord.Member):
             await interaction.response.send_message("Cet utilisateur n'a pas voté")
 
 @bot.tree.command(name="best", description="Affiche le meilleur FC")
-# optionnal precise the user it can only a string 
 async def best(interaction: discord.Interaction, user: discord.Member = None):
     logs.addLog(interaction.user.id, "best")
     if user == None:
@@ -297,18 +323,25 @@ async def best(interaction: discord.Interaction, user: discord.Member = None):
     embed.add_field(name="Lien", value=buildPollUrl(getIdRightPoll()), inline=False)
     await interaction.response.send_message(embed=embed)
 
+@bot.tree.command(name="apropos", description="Affiche les informations du bot")
+async def apropos(interaction: discord.Interaction):
+    logs.addLog(interaction.user.id, "a propos")
+    embed = discord.Embed(title=bot.user.name, description="Bot créé par Wiibleyde#2834", color=0x00ff00)
+    releaseInfo = getGithubLastRelease()
+    embed.set_thumbnail(url=releaseInfo['author']['avatar_url'])
+    embed.add_field(name="Version", value=releaseInfo['tag_name'], inline=False)
+    embed.add_field(name="Date de sortie", value=datetime.datetime.strptime(releaseInfo['published_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y"), inline=False)
+    embed.add_field(name="Lien", value=releaseInfo['html_url'], inline=False)
+    embed.set_footer(text="Wiibleyde#2834")
+    await interaction.response.send_message(embed=embed)
+    
 @bot.tree.command(name="help", description="Affiche l'aide")
 async def help(interaction: discord.Interaction):
     logs.addLog(interaction.user.id, "help")
     embed = discord.Embed(title="Les FC de Georgia", description="Pour utiliser les commandes, il faut taper / et discord va vous proposer les commandes disponibles", color=0x00ff00)
-    embed.add_field(name="sondage", value="Affiche le sondage en cours", inline=False)
-    embed.add_field(name="premier", value="Affiche le premier du sondage en cours", inline=False)
-    embed.add_field(name="classement", value="Affiche le classement du sondage en cours", inline=False)
-    embed.add_field(name="utilisateur", value="Affiche les votes d'un utilisateur", inline=False)
-    embed.add_field(name="help", value="Affiche l'aide", inline=False)
-    embed.add_field(name="best", value="Affiche le meilleur FC de l'uilisateur", inline=False)
+    embed.add_field(name="Commandes", value="sondage : Renvoie le dernier sondage des FC valide\nclassement : Renvoie le classement du sondage en cours\nutilisateur : Renvoie les votes d'un utilisateur\nbest : Renvoie le meilleur FC\npremier : Renvoie le premier FC\na propos : Renvoie les informations du bot", inline=False)
     await interaction.response.send_message(embed=embed)
-
+    
 @tasks.loop(seconds=0.5)
 async def CheckFcChange():
     print("Checking FC change")
