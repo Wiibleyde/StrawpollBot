@@ -95,6 +95,16 @@ class DataLogs:
         req = "SELECT * FROM logs WHERE user_id=? AND command=? AND date=?"
         self.cursor.execute(req, (user_id, command, date))
         return self.cursor.fetchall()
+    
+    def getLastCommand(self, user_id):
+        req = "SELECT command,date FROM logs WHERE user_id=? ORDER BY id DESC LIMIT 10"
+        self.cursor.execute(req, (user_id,))
+        return self.cursor.fetchall()
+    
+    def getNbCommand(self, user_id):
+        req = "SELECT COUNT(*) FROM logs WHERE user_id=?"
+        self.cursor.execute(req, (user_id,))
+        return self.cursor.fetchone()[0]
 
 def getIdRightPoll(default=False):
     if default:
@@ -334,7 +344,17 @@ async def info(interaction: discord.Interaction):
     embed.add_field(name="Lien", value=releaseInfo['html_url'], inline=False)
     embed.set_footer(text="Wiibleyde#2834")
     await interaction.response.send_message(embed=embed)
-    
+
+@bot.tree.command(name="userstat", description="Affiche les statistiques d'un utilisateur")
+async def userstat(interaction: discord.Interaction, userid: int = None):
+    logs.addLog(interaction.user.id, "userstat")
+    if userid == None:
+        userid = interaction.user.id
+    embed = discord.Embed(title="Statistiques", description=f"Statistiques de {userid}", color=0x00ff00)
+    embed.add_field(name="Nombre de commandes", value=logs.getNbCommand(userid), inline=False)
+    embed.add_field(name="10 dernières commandes", value=logs.getLastCommand(userid), inline=False)
+    await interaction.response.send_message(embed=embed)
+
 @bot.tree.command(name="help", description="Affiche l'aide")
 async def help(interaction: discord.Interaction):
     logs.addLog(interaction.user.id, "help")
