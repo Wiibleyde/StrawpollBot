@@ -8,6 +8,7 @@ import sqlite3
 import os
 import asyncio
 import random
+from bs4 import BeautifulSoup
 
 class Config:
     def __init__(self, fileName):
@@ -16,10 +17,11 @@ class Config:
         self.token = self.data["Token"]
         self.strawpollUser = self.data["Strawpoll User"]
         self.strawpollToken = self.data["Strawpoll Token"]
+        self.wikiUrl = self.data["wikiUrl"]
     
     def createFile(self):
         with open(self.fileName, "w") as f:
-            json.dump({"Token": "", "Strawpoll User": "", "Strawpoll Token": ""}, f, indent=4)
+            json.dump({"Token": "", "Strawpoll User": "", "Strawpoll Token": "","wikiUrl":"https://failyv.fandom.com/fr/wiki/"}, f, indent=4)
 
     def loadFile(self):
         try:
@@ -228,6 +230,17 @@ def getGithubLastCommit():
     data=json.loads(response.text)
     return data[0]
 
+def getWikiPage(search):
+    url = config.wikiUrl+"Spécial:Recherche?query=+"+search.replace(" ","+")
+    response = requests.request("GET", url)
+    data=response.text
+    soup = BeautifulSoup(data, 'html.parser')
+    for link in soup.find_all('a'):
+        if link.get('class') != None:
+            if link.get('class')[0] == "unified-search__result__link":
+                return link.get('href')
+    return None
+
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 @bot.event
@@ -267,9 +280,9 @@ async def premier(interaction: discord.Interaction):
             embed.add_field(name="Nombre de votes", value=getVoteCount(data,mostVoted[0]), inline=False)
             await interaction.response.send_message(embed=embed)
         else:
-            embed = discord.Embed(title="Les FC de Georgia", description="Les premiers sont", color=0x00ff00)
+            embed = discord.Embed(title="Les FC de Georgia", description="Les premiers avec "+str(getVoteCount(data,mostVoted[0]))+" votes", color=0x00ff00)
             for i in range(len(mostVoted)):
-                embed.add_field(name=mostVoted[i], value=f"{getVoteCount(data,mostVoted[i])} votes", inline=False)
+                embed.add_field(name=mostVoted[i], value=f"([page wiki]({getWikiPage(mostVoted[i])}))", inline=False)
             await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="classement", description="Affiche le classement du sondage en cours")
@@ -288,7 +301,7 @@ async def classement(interaction: discord.Interaction):
         votes=sondage[1]
         strToField=""
         for i in range(len(sondage[0])):
-            strToField=strToField+f"{people[i]} : {votes[i]} votes\n"
+            strToField=strToField+f"{i+1}. {people[i]} : {votes[i]} votes\n"
         embed.add_field(name="Résultat", value=strToField, inline=False)
         embed.add_field(name="Lien", value=buildPollUrl(id), inline=False)
         await interaction.response.send_message(embed=embed)
@@ -355,11 +368,18 @@ async def userstat(interaction: discord.Interaction, userid: int = None):
     embed.add_field(name="10 dernières commandes", value=logs.getLastCommand(userid), inline=False)
     await interaction.response.send_message(embed=embed)
 
+@bot.tree.command(name="wiki", description="Affiche la page wiki")
+async def wiki(interaction: discord.Interaction, search: str):
+    logs.addLog(interaction.user.id, "wiki")
+    embed = discord.Embed(title="Wiki", description=f"Résultat de la recherche {search}", color=0x00ff00)
+    embed.add_field(name="Lien", value=getWikiPage(search), inline=False)
+    await interaction.response.send_message(embed=embed)
+
 @bot.tree.command(name="help", description="Affiche l'aide")
 async def help(interaction: discord.Interaction):
     logs.addLog(interaction.user.id, "help")
     embed = discord.Embed(title="Les FC de Georgia", description="Pour utiliser les commandes, il faut taper / et discord va vous proposer les commandes disponibles", color=0x00ff00)
-    embed.add_field(name="Commandes", value="sondage : Renvoie le dernier sondage des FC valide\nclassement : Renvoie le classement du sondage en cours\nutilisateur : Renvoie les votes d'un utilisateur\nbest : Renvoie le meilleur FC\npremier : Renvoie le premier FC\ninfo : Renvoie les informations du bot", inline=False)
+    embed.add_field(name="Commandes", value="sondage : Renvoie le dernier sondage des FC valide\nclassement : Renvoie le classement du sondage en cours\nutilisateur : Renvoie les votes d'un utilisateur\nbest : Renvoie le meilleur FC\npremier : Renvoie le premier FC\ninfo : Renvoie les informations du bot\nwiki : Renvoie la page wiki\nhelp : Renvoie l'aide", inline=False)
     await interaction.response.send_message(embed=embed)
     
 @tasks.loop(seconds=0.5)
