@@ -372,7 +372,11 @@ async def userstat(interaction: discord.Interaction, userid: int = None):
 async def wiki(interaction: discord.Interaction, search: str):
     logs.addLog(interaction.user.id, "wiki")
     embed = discord.Embed(title="Wiki", description=f"Résultat de la recherche {search}", color=0x00ff00)
-    embed.add_field(name="Lien", value=getWikiPage(search), inline=False)
+    result = getWikiPage(search)
+    if result == None:
+        embed.add_field(name="Résultat", value="Aucun résultat", inline=False)
+    else:
+        embed.add_field(name="Résultat", value=result, inline=False)
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="help", description="Affiche l'aide")
