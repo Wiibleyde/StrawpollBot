@@ -276,8 +276,8 @@ async def premier(interaction: discord.Interaction):
         data = getPollResult(id)
         mostVoted = getMostVoted(data)
         if len(mostVoted) == 1:
-            embed = discord.Embed(title="Les FC de Georgia", description=f"Le premier est {mostVoted} ({getWikiPage(mostVoted)})", color=0x00ff00)
-            embed.add_field(name="Nombre de votes", value=getVoteCount(data,mostVoted[0]), inline=False)
+            embed = discord.Embed(title="Les FC de Georgia", description=f"Le premier avec {getVoteCount(data,mostVoted[0])} votes", color=0x00ff00)
+            embed.add_field(name=mostVoted[0], value=f"([page wiki]({getWikiPage(mostVoted[0])}))", inline=False)
             await interaction.response.send_message(embed=embed)
         else:
             embed = discord.Embed(title="Les FC de Georgia", description="Les premiers avec "+str(getVoteCount(data,mostVoted[0]))+" votes", color=0x00ff00)
