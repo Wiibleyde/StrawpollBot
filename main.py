@@ -9,6 +9,8 @@ import os
 import asyncio
 import random
 from bs4 import BeautifulSoup
+from discord.ext.commands import has_permissions, MissingPermissions
+import time
 
 class Config:
     def __init__(self, fileName):
@@ -18,10 +20,11 @@ class Config:
         self.strawpollUser = self.data["Strawpoll User"]
         self.strawpollToken = self.data["Strawpoll Token"]
         self.wikiUrl = self.data["wikiUrl"]
+        self.searchCooldown = self.data["searchCooldown"]
     
     def createFile(self):
         with open(self.fileName, "w") as f:
-            json.dump({"Token": "", "Strawpoll User": "", "Strawpoll Token": "","wikiUrl":"https://failyv.fandom.com/fr/wiki/"}, f, indent=4)
+            json.dump({"Token": "", "Strawpoll User": "", "Strawpoll Token": "","wikiUrl":"https://failyv.fandom.com/fr/wiki/", "searchCooldown": 5}, f, indent=4)
 
     def loadFile(self):
         try:
@@ -359,17 +362,33 @@ async def info(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="userstat", description="Affiche les statistiques d'un utilisateur")
-async def userstat(interaction: discord.Interaction, userid: int = None):
+async def userstat(interaction: discord.Interaction, userid: int):
     logs.addLog(interaction.user.id, "userstat")
-    if userid == None:
-        userid = interaction.user.id
-    embed = discord.Embed(title="Statistiques", description=f"Statistiques de {userid}", color=0x00ff00)
-    embed.add_field(name="Nombre de commandes", value=logs.getNbCommand(userid), inline=False)
-    embed.add_field(name="10 dernières commandes", value=logs.getLastCommand(userid), inline=False)
-    await interaction.response.send_message(embed=embed)
+    if interaction.user.guild_permissions.administrator:
+        try:
+            if userid == None:
+                userid = interaction.user.id
+            embed = discord.Embed(title="Statistiques", description=f"Statistiques de {userid}", color=0x00ff00)
+            embed.add_field(name="Nombre de commandes", value=DataLogs.getNbCommand(userid), inline=False)
+            embed.add_field(name="10 dernières commandes", value=DataLogs.getLastCommand(userid), inline=False)
+        except:
+            embed = discord.Embed(title="Statistiques", description=f"Statistiques de {userid}", color=0x00ff00)
+            embed.add_field(name="Nombre de commandes", value="çamarchepasmdr", inline=False)
+            embed.add_field(name="10 dernières commandes", value="çamarchetoujourspasmdr", inline=False)
+        await interaction.response.send_message(embed=embed)
+    else:
+        await interaction.response.send_message("Vous n'avez pas la permission d'utiliser cette commande")
+        time.sleep(2)
+        await interaction.message.delete()
 
 @bot.tree.command(name="wiki", description="Affiche la page wiki")
 async def wiki(interaction: discord.Interaction, search: str):
+    cooldown = config.searchCooldown
+    if interaction.user.id in cooldowns:
+        if time.time() - cooldowns[interaction.user.id] < cooldown:
+            await interaction.response.send_message(f"Attendez encore {round(cooldown - (time.time() - cooldowns[interaction.user.id]),2)}s", ephemeral=True)
+            return
+    cooldowns[interaction.user.id] = time.time()
     logs.addLog(interaction.user.id, "wiki")
     embed = discord.Embed(title="Wiki", description=f"Résultat de la recherche {search}", color=0x00ff00)
     result = getWikiPage(search)
@@ -424,4 +443,5 @@ if __name__ == "__main__":
     token = config.getKey("Strawpoll Token")
     user = config.getKey("Strawpoll User")
     logs = DataLogs("logs.db")
+    cooldowns = {}
     bot.run(config.getKey("Token"))
