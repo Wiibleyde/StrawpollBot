@@ -396,7 +396,7 @@ async def wiki(interaction: discord.Interaction, search: str):
         embed.add_field(name="Résultat", value="Aucun résultat", inline=False)
     else:
         embed.add_field(name="Résultat", value=result, inline=False)
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="help", description="Affiche l'aide")
 async def help(interaction: discord.Interaction):
