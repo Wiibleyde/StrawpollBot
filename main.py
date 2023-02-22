@@ -382,7 +382,7 @@ async def userstat(interaction: discord.Interaction, userid: int):
         await interaction.message.delete()
 
 @bot.tree.command(name="wiki", description="Affiche la page wiki")
-async def wiki(interaction: discord.Interaction, search: str):
+async def wiki(interaction: discord.Interaction, search: str, afficher: bool = False):
     cooldown = config.searchCooldown
     if interaction.user.id in cooldowns:
         if time.time() - cooldowns[interaction.user.id] < cooldown:
@@ -396,7 +396,10 @@ async def wiki(interaction: discord.Interaction, search: str):
         embed.add_field(name="Résultat", value="Aucun résultat", inline=False)
     else:
         embed.add_field(name="Résultat", value=result, inline=False)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    if afficher:
+        await interaction.response.send_message(embed=embed)
+    else:
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="help", description="Affiche l'aide")
 async def help(interaction: discord.Interaction):
