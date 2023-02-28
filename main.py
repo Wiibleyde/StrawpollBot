@@ -1,5 +1,5 @@
 import discord
-from discord import app_commands
+from discord import app_commands, ui
 from discord.ext import commands, tasks
 import json
 import requests
@@ -47,69 +47,121 @@ class Config:
         with open(self.fileName, "w") as f:
             json.dump(self.data, f, indent=4)
 
-class DataLogs:
+class Data:
     def __init__(self, fileName):
         self.fileName = fileName
-        req = "CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, command TEXT, date TEXT)"
+        req = "CREATE TABLE IF NOT EXISTS dataObj (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, command TEXT, date TEXT)"
+        req2 = "CREATE TABLE IF NOT EXISTS poll (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, idPoll TEXT)"
         self.conn = sqlite3.connect(self.fileName)
         self.cursor = self.conn.cursor()
         self.cursor.execute(req)
+        self.cursor.execute(req2)
         self.conn.commit()
     
     def addLog(self, user_id, command):
-        req = "INSERT INTO logs (user_id, command, date) VALUES (?, ?, ?)"
+        req = "INSERT INTO dataObj (user_id, command, date) VALUES (?, ?, ?)"
         self.cursor.execute(req, (user_id, command, datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")))
         self.conn.commit()
 
-    def getLogs(self):
-        req = "SELECT * FROM logs"
+    def getdataObj(self):
+        req = "SELECT * FROM dataObj"
         self.cursor.execute(req)
         return self.cursor.fetchall()
 
-    def getLogsByUser(self, user_id):
-        req = "SELECT * FROM logs WHERE user_id=?"
+    def getdataObjByUser(self, user_id):
+        req = "SELECT * FROM dataObj WHERE user_id=?"
         self.cursor.execute(req, (user_id,))
         return self.cursor.fetchall()
 
-    def getLogsByCommand(self, command):
-        req = "SELECT * FROM logs WHERE command=?"
+    def getdataObjByCommand(self, command):
+        req = "SELECT * FROM dataObj WHERE command=?"
         self.cursor.execute(req, (command,))
         return self.cursor.fetchall()
 
-    def getLogsByDate(self, date):
-        req = "SELECT * FROM logs WHERE date=?"
+    def getdataObjByDate(self, date):
+        req = "SELECT * FROM dataObj WHERE date=?"
         self.cursor.execute(req, (date,))
         return self.cursor.fetchall()
 
-    def getLogsByUserAndCommand(self, user_id, command):
-        req = "SELECT * FROM logs WHERE user_id=? AND command=?"
+    def getdataObjByUserAndCommand(self, user_id, command):
+        req = "SELECT * FROM dataObj WHERE user_id=? AND command=?"
         self.cursor.execute(req, (user_id, command))
         return self.cursor.fetchall()
 
-    def getLogsByUserAndDate(self, user_id, date):
-        req = "SELECT * FROM logs WHERE user_id=? AND date=?"
+    def getdataObjByUserAndDate(self, user_id, date):
+        req = "SELECT * FROM dataObj WHERE user_id=? AND date=?"
         self.cursor.execute(req, (user_id, date))
         return self.cursor.fetchall()
 
-    def getLogsByCommandAndDate(self, command, date):
-        req = "SELECT * FROM logs WHERE command=? AND date=?"
+    def getdataObjByCommandAndDate(self, command, date):
+        req = "SELECT * FROM dataObj WHERE command=? AND date=?"
         self.cursor.execute(req, (command, date))
         return self.cursor.fetchall()
 
-    def getLogsByUserAndCommandAndDate(self, user_id, command, date):
-        req = "SELECT * FROM logs WHERE user_id=? AND command=? AND date=?"
+    def getdataObjByUserAndCommandAndDate(self, user_id, command, date):
+        req = "SELECT * FROM dataObj WHERE user_id=? AND command=? AND date=?"
         self.cursor.execute(req, (user_id, command, date))
         return self.cursor.fetchall()
     
     def getLastCommand(self, user_id):
-        req = "SELECT command,date FROM logs WHERE user_id=? ORDER BY id DESC LIMIT 10"
+        req = "SELECT command,date FROM dataObj WHERE user_id=? ORDER BY id DESC LIMIT 10"
         self.cursor.execute(req, (user_id,))
         return self.cursor.fetchall()
     
     def getNbCommand(self, user_id):
-        req = "SELECT COUNT(*) FROM logs WHERE user_id=?"
+        req = "SELECT COUNT(*) FROM dataObj WHERE user_id=?"
         self.cursor.execute(req, (user_id,))
         return self.cursor.fetchone()[0]
+    
+    def addPoll(self, name, idPoll):
+        if self.isPollExisting(name,idPoll):
+            return
+        req = "INSERT INTO poll (name, idPoll) VALUES (?, ?)"
+        self.cursor.execute(req, (name, idPoll))
+        self.conn.commit()
+
+    def getPoll(self):
+        req = "SELECT * FROM poll"
+        self.cursor.execute(req)
+        return self.cursor.fetchall()
+    
+    def getPollByName(self, name):
+        req = "SELECT * FROM poll WHERE name=?"
+        self.cursor.execute(req, (name,))
+        return self.cursor.fetchall()
+    
+    def getPollById(self, idPoll):
+        req = "SELECT * FROM poll WHERE idPoll=?"
+        self.cursor.execute(req, (idPoll,))
+        return self.cursor.fetchall()
+    
+    def deletePollId(self, idPoll):
+        req = "DELETE FROM poll WHERE idPoll=?"
+        self.cursor.execute(req, (idPoll,))
+        self.conn.commit()
+
+    def deletePollName(self, name):
+        req = "DELETE FROM poll WHERE name=?"
+        self.cursor.execute(req, (name,))
+        self.conn.commit()
+
+    def isPollExisting(self,name,idPoll):
+        req = "SELECT * FROM poll WHERE name=? OR idPoll=?"
+        self.cursor.execute(req, (name,idPoll))
+        return self.cursor.fetchone() is not None
+    
+    def listPoll(self):
+        req = "SELECT name,idPoll FROM poll"
+        self.cursor.execute(req)
+        return self.cursor.fetchall()
+    
+class AddPollModal(ui.Modal, title="Ajouter un sondage"):
+    nom = ui.TextInput(label="Nom du sondage", required=True)
+    idPoll = ui.TextInput(label="ID du sondage", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        dataObj.addPoll(str(self.nom),str(self.idPoll))
+        await interaction.response.send_message("Sondage ajouté", ephemeral=True)
 
 def getIdRightPoll(default=False):
     if default:
@@ -259,7 +311,7 @@ async def on_ready():
 
 @bot.tree.command(name="sondage", description="Affiche le sondage en cours")
 async def sondage(interaction: discord.Interaction):
-    logs.addLog(interaction.user.id, "sondage")
+    dataObj.addLog(interaction.user.id, "sondage")
     id = getIdRightPoll()
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
@@ -267,12 +319,20 @@ async def sondage(interaction: discord.Interaction):
         data = getPollResult(id)
         embed = discord.Embed(title="Les FC de Georgia", description="Dernier sondage en cours", color=0x00ff00)
         embed.add_field(name="Lien", value=buildPollUrl(id), inline=False)
+        customList = dataObj.listPoll()
+        strList = ""
+        for i in customList:
+            strList += i[0] + " : " + buildPollUrl(i[1]) + "\n"
+        embed.add_field(name="Liste des sondages", value=strList, inline=False)
         await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="premier", description="Affiche le premier du sondage en cours")
-async def premier(interaction: discord.Interaction):
-    logs.addLog(interaction.user.id, "premier")
-    id = getIdRightPoll()
+async def premier(interaction: discord.Interaction, sondage: str = None):
+    dataObj.addLog(interaction.user.id, "premier")
+    if sondage == None:
+        id = getIdRightPoll()
+    else:
+        id = sondage
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
     else:
@@ -289,15 +349,16 @@ async def premier(interaction: discord.Interaction):
             await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="classement", description="Affiche le classement du sondage en cours")
-async def classement(interaction: discord.Interaction):
-    logs.addLog(interaction.user.id, "classement")
-    id = getIdRightPoll()
+async def classement(interaction: discord.Interaction, sondage: str = None):
+    dataObj.addLog(interaction.user.id, "classement")
+    if sondage == None:
+        id = getIdRightPoll()
+    else:
+        id = sondage
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
     else:
-        data = getPollResult(id)
         embed = discord.Embed(title="Les FC de Georgia", description="Classement du sondage en cours", color=0x00ff00)
-        id = getIdRightPoll(False)
         data = getPollResult(id)
         sondage=getSortedLeaderBoard(data)
         people=sondage[0]
@@ -310,9 +371,12 @@ async def classement(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="utilisateur", description="Affiche les votes d'un utilisateur")
-async def utilisateur(interaction: discord.Interaction, user: discord.Member = None):
-    logs.addLog(interaction.user.id, "utilisateur")
-    id = getIdRightPoll()
+async def utilisateur(interaction: discord.Interaction, user: discord.Member = None, sondage: str = None):
+    dataObj.addLog(interaction.user.id, "utilisateur")
+    if sondage == None:
+        id = getIdRightPoll()
+    else:
+        id = sondage
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
     if user == None:
@@ -335,7 +399,7 @@ async def utilisateur(interaction: discord.Interaction, user: discord.Member = N
 
 @bot.tree.command(name="best", description="Affiche le meilleur FC")
 async def best(interaction: discord.Interaction, user: discord.Member = None):
-    logs.addLog(interaction.user.id, "best")
+    dataObj.addLog(interaction.user.id, "best")
     if user == None:
         user=interaction.user
     data=getPollResult(getIdRightPoll(False))
@@ -351,7 +415,7 @@ async def best(interaction: discord.Interaction, user: discord.Member = None):
 
 @bot.tree.command(name="info", description="Affiche les informations du bot")
 async def info(interaction: discord.Interaction):
-    logs.addLog(interaction.user.id, "a propos")
+    dataObj.addLog(interaction.user.id, "a propos")
     embed = discord.Embed(title=bot.user.name, description="Bot créé par Wiibleyde#2834", color=0x00ff00)
     releaseInfo = getGithubLastRelease()
     embed.set_thumbnail(url=releaseInfo['author']['avatar_url'])
@@ -363,14 +427,14 @@ async def info(interaction: discord.Interaction):
 
 @bot.tree.command(name="userstat", description="Affiche les statistiques d'un utilisateur")
 async def userstat(interaction: discord.Interaction, userid: int):
-    logs.addLog(interaction.user.id, "userstat")
+    dataObj.addLog(interaction.user.id, "userstat")
     if interaction.user.guild_permissions.administrator:
         try:
             if userid == None:
                 userid = interaction.user.id
             embed = discord.Embed(title="Statistiques", description=f"Statistiques de {userid}", color=0x00ff00)
-            embed.add_field(name="Nombre de commandes", value=DataLogs.getNbCommand(userid), inline=False)
-            embed.add_field(name="10 dernières commandes", value=DataLogs.getLastCommand(userid), inline=False)
+            embed.add_field(name="Nombre de commandes", value=Data.getNbCommand(userid), inline=False)
+            embed.add_field(name="10 dernières commandes", value=Data.getLastCommand(userid), inline=False)
         except:
             embed = discord.Embed(title="Statistiques", description=f"Statistiques de {userid}", color=0x00ff00)
             embed.add_field(name="Nombre de commandes", value="çamarchepasmdr", inline=False)
@@ -389,7 +453,7 @@ async def wiki(interaction: discord.Interaction, search: str, afficher: bool = F
             await interaction.response.send_message(f"Attendez encore {round(cooldown - (time.time() - cooldowns[interaction.user.id]),2)}s", ephemeral=True)
             return
     cooldowns[interaction.user.id] = time.time()
-    logs.addLog(interaction.user.id, "wiki")
+    dataObj.addLog(interaction.user.id, "wiki")
     embed = discord.Embed(title="Wiki", description=f"Résultat de la recherche {search}", color=0x00ff00)
     result = getWikiPage(search)
     if result == None:
@@ -401,9 +465,41 @@ async def wiki(interaction: discord.Interaction, search: str, afficher: bool = F
     else:
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+@bot.tree.command(name="ajoutersondage", description="Ajoute un sondage")
+async def addpoll(interaction: discord.Interaction):
+    if interaction.user.guild_permissions.administrator:
+        modal = AddPollModal()
+        await interaction.response.send_modal(modal)
+    else:
+        await interaction.response.send_message("Vous n'avez pas la permission d'utiliser cette commande")
+        time.sleep(2)
+        await interaction.delete_original_response()
+
+@bot.tree.command(name="supprimersondage", description="Supprime un sondage")
+async def removepoll(interaction: discord.Interaction, id: str = None, name: str = None):
+    if interaction.user.guild_permissions.administrator:
+        if id == None and name == None:
+            await interaction.response.send_message("Vous devez spécifier un id ou un nom", ephemeral=True)
+            return
+        if id != None:
+            dataObj.deletePollId(id)
+        else:
+            dataObj.deletePollName(name)
+        await interaction.response.send_message("Sondage supprimé", ephemeral=True)
+
+@bot.tree.command(name="listesondage", description="Liste les sondages")
+async def listpoll(interaction: discord.Interaction):
+    if interaction.user.guild_permissions.administrator:
+        embed = discord.Embed(title="Liste des sondages", description="Liste des sondages", color=0x00ff00)
+        pollList = dataObj.listPoll()
+        print(pollList)
+        for poll in pollList:
+            embed.add_field(name=poll[0], value=poll[1], inline=False)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
 @bot.tree.command(name="help", description="Affiche l'aide")
 async def help(interaction: discord.Interaction):
-    logs.addLog(interaction.user.id, "help")
+    dataObj.addLog(interaction.user.id, "help")
     embed = discord.Embed(title="Les FC de Georgia", description="Pour utiliser les commandes, il faut taper / et discord va vous proposer les commandes disponibles", color=0x00ff00)
     embed.add_field(name="Commandes", value="sondage : Renvoie le dernier sondage des FC valide\nclassement : Renvoie le classement du sondage en cours\nutilisateur : Renvoie les votes d'un utilisateur\nbest : Renvoie le meilleur FC\npremier : Renvoie le premier FC\ninfo : Renvoie les informations du bot\nwiki : Renvoie la page wiki\nhelp : Renvoie l'aide", inline=False)
     await interaction.response.send_message(embed=embed)
@@ -445,6 +541,6 @@ if __name__ == "__main__":
     config = Config("config.json")
     token = config.getKey("Strawpoll Token")
     user = config.getKey("Strawpoll User")
-    logs = DataLogs("logs.db")
+    dataObj = Data("logs.db")
     cooldowns = {}
     bot.run(config.getKey("Token"))
