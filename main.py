@@ -337,8 +337,9 @@ async def premier(interaction: discord.Interaction, sondage: str = None):
     if sondage == None:
         id = getIdRightPoll()
     else:
-        id = dataObj.getIdByPollName(sondage)
-        if id == None:
+        try:
+            id = dataObj.getIdByPollName(sondage)
+        except:
             id = sondage
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
@@ -361,8 +362,9 @@ async def classement(interaction: discord.Interaction, sondage: str = None):
     if sondage == None:
         id = getIdRightPoll()
     else:
-        id = dataObj.getIdByPollName(sondage)
-        if id == None:
+        try:
+            id = dataObj.getIdByPollName(sondage)
+        except:
             id = sondage
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
@@ -385,8 +387,9 @@ async def utilisateur(interaction: discord.Interaction, user: discord.Member = N
     if sondage == None:
         id = getIdRightPoll()
     else:
-        id = dataObj.getIdByPollName(sondage)
-        if id == None:
+        try:
+            id = dataObj.getIdByPollName(sondage)
+        except:
             id = sondage
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
