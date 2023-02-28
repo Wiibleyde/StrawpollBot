@@ -150,6 +150,11 @@ class Data:
         self.cursor.execute(req, (name,idPoll))
         return self.cursor.fetchone() is not None
     
+    def getIdByPollName(self,name):
+        req = "SELECT idPoll FROM poll WHERE name=?"
+        self.cursor.execute(req, (name,))
+        return self.cursor.fetchone()[0]
+    
     def listPoll(self):
         req = "SELECT name,idPoll FROM poll"
         self.cursor.execute(req)
@@ -332,7 +337,9 @@ async def premier(interaction: discord.Interaction, sondage: str = None):
     if sondage == None:
         id = getIdRightPoll()
     else:
-        id = sondage
+        id = dataObj.getIdByPollName(sondage)
+        if id == None:
+            id = sondage
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
     else:
@@ -354,7 +361,9 @@ async def classement(interaction: discord.Interaction, sondage: str = None):
     if sondage == None:
         id = getIdRightPoll()
     else:
-        id = sondage
+        id = dataObj.getIdByPollName(sondage)
+        if id == None:
+            id = sondage
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
     else:
@@ -376,7 +385,9 @@ async def utilisateur(interaction: discord.Interaction, user: discord.Member = N
     if sondage == None:
         id = getIdRightPoll()
     else:
-        id = sondage
+        id = dataObj.getIdByPollName(sondage)
+        if id == None:
+            id = sondage
     if id == None:
         await interaction.response.send_message("Aucun sondage en cours")
     if user == None:
