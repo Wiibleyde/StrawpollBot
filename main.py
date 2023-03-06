@@ -511,6 +511,11 @@ async def listpoll(interaction: discord.Interaction):
             embed.add_field(name=poll[0], value=poll[1], inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+@bot.tree.command(name="wiibleyde", description="Affiche les informations de Wiibleyde")
+async def wiibleyde(interaction: discord.Interaction):
+    dataObj.addLog(interaction.user.id, "wiibleyde")
+    await interaction.response.send_message("https://media.discordapp.net/attachments/940562878971400193/1016713259971268659/CAT_DANCE.gif", ephemeral=True)
+
 @bot.tree.command(name="help", description="Affiche l'aide")
 async def help(interaction: discord.Interaction):
     dataObj.addLog(interaction.user.id, "help")
