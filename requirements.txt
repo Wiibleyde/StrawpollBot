@@ -1,0 +1,5 @@
+discord.py
+discord-ext-bot
+datetime
+requests
+bs4
