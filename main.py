@@ -178,13 +178,12 @@ def getIdRightPoll(default=False):
             "X-API-Key": token
         }
         response = requests.request("GET", url, headers=headers)
-        data=json.loads(response.text)
-        for i in range(len(data['data'])):
-            if data['data'][i]['poll_config']['deadline_at'] == None:
-                continue
-            if data['data'][i]['poll_config']['deadline_at'] > datetime.datetime.now().timestamp():
-                return data['data'][i]['id']
-        return data['data'][len(data['data'])-1]['id']
+        data = json.loads(response.text)
+        sorted_polls = sorted(data['data'], key=lambda x: x['poll_config']['deadline_at'] or 0)
+        for poll in sorted_polls:
+            if poll['poll_config']['deadline_at'] and poll['poll_config']['deadline_at'] > datetime.datetime.now().timestamp():
+                return poll['id']
+        return sorted_polls[-1]['id']
 
 def getPollResult(id):
     url = "https://api.strawpoll.com/v3/polls/"+str(id)+"/results"
