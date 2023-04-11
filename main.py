@@ -351,7 +351,7 @@ async def premier(interaction: discord.Interaction, sondage: str = None):
             await interaction.response.send_message(embed=embed)
         else:
             embed = discord.Embed(title="Les FC de Georgia", description="Les premiers avec "+str(getVoteCount(data,mostVoted[0]))+" votes", color=0x00ff00)
-            for i in range(len(mostVoted)):
+            for i in range(len(mostVoted[0:4])):
                 embed.add_field(name=mostVoted[i], value=f"([page wiki]({getWikiPage(mostVoted[i])}))", inline=False)
             await interaction.response.send_message(embed=embed)
 
@@ -541,6 +541,11 @@ async def CheckFcChange():
                 numberOfVote = getVoteCount(data,mostVoted[0])
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=mostVoted[0]+" ("+str(numberOfVote)+" votes)"))
                 await asyncio.sleep(waitTime)
+                continue
+            if len(mostVoted) > 1:
+                numberOfVote = getVoteCount(data,mostVoted[0])
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=mostVoted[0]+" ("+str(numberOfVote)+" votes)"))
+                await asyncio.sleep(minChangeTime)
                 continue
             numberOfLoop = (waitTime/len(mostVoted))//minChangeTime
             changeTime = waitTime/(len(mostVoted)*numberOfLoop)
