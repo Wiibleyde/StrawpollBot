@@ -510,6 +510,23 @@ async def listpoll(interaction: discord.Interaction):
             embed.add_field(name=poll[0], value=poll[1], inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+@bot.tree.command(name="thend", description="The end of the bot")
+async def thend(interaction: discord.Interaction):
+    if interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("Le processus de fermeture du bot a été lancé", ephemeral=True)
+        embed = discord.Embed(title="The end", description="The end of the bot", color=0x00ff00)
+        embed.add_field(name="C'est la fin", value="C'est la fin, merci d'avoir utilisé le bot", inline=False)
+        channel = interaction.channel
+        await channel.send(embed=embed)
+        await channel.send("Merci d'avoir utilisé le bot. Le bot va s'éteindre dans 5 secondes")
+        time.sleep(5)
+        await channel.send("Fermeture du processus")
+        await bot.close()
+    else:
+        await interaction.response.send_message("Vous n'avez pas la permission d'utiliser cette commande")
+        time.sleep(2)
+        await interaction.delete_original_response()
+
 @bot.tree.command(name="wiibleyde", description="Affiche les informations de Wiibleyde")
 async def wiibleyde(interaction: discord.Interaction):
     dataObj.addLog(interaction.user.id, "wiibleyde")

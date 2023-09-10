@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    image: wiibleyde/fcbot:latest
+    container_name: FcBot
+    restart: always
+    volumes:
+      - ./:/app
